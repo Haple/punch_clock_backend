@@ -1,58 +1,72 @@
 package com.punch_clock.company;
 
+import java.util.Arrays;
+import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import com.google.common.base.Optional;
-import com.punch_clock.employee.Employee;
-import com.punch_clock.employee.EmployeeRepository;
+import com.punch_clock.user.Role;
+import com.punch_clock.user.RoleRepository;
+import com.punch_clock.user.User;
+import com.punch_clock.user.UserRepository;
 
 @RestController
 @RequestMapping("/v1/companies")
 public class CompanyController {
 
-	private CompanyRepository companyRepository;
-	private EmployeeRepository employeeRepository;
+  private CompanyRepository companyRepository;
+  private UserRepository userRepository;
+  private RoleRepository roleRepository;
+  private BCryptPasswordEncoder bCryptPasswordEncoder;
 
-	@Autowired
-	public CompanyController(CompanyRepository companyRepository, EmployeeRepository userRepository) {
-		super();
-		this.companyRepository = companyRepository;
-		this.employeeRepository = userRepository;
-	}
+  @Autowired
+  public CompanyController(CompanyRepository companyRepository, UserRepository userRepository,
+      RoleRepository roleRepository, BCryptPasswordEncoder bCryptPasswordEncoder) {
+    super();
+    this.companyRepository = companyRepository;
+    this.userRepository = userRepository;
+    this.roleRepository = roleRepository;
+    this.bCryptPasswordEncoder = bCryptPasswordEncoder;
+  }
 
-	@PostMapping
-	private ResponseEntity<Void> createCompany(@RequestBody SignUpRequest signUp) throws Exception {
-		
-		/**
-		 * Check company already exists
-		 */
-		String cnpj = signUp.getCompany().getCnpj();
-		Optional<Company> company = companyRepository.findByCnpj(cnpj);
-		if (company.isPresent()) {
-			throw new Exception("Company already exists");
-		}
-		
-		/**
-		 * Check user already exists
-		 */
-		String cpf = signUp.getEmployee().getCpf();
-		String email = signUp.getEmployee().getEmail();
-		Optional<Employee> user = employeeRepository.findByCpfOrEmail(cpf, email);
-		if (user.isPresent() && user.get().getCpf().equals(cpf)) {
-			throw new Exception("CPF already exists");
-		} else if (user.isPresent() && user.get().getEmail().equals(email)) {
-			throw new Exception("E-mail already exists");
-		}
-		
-		companyRepository.save(signUp.getCompany());
-		employeeRepository.save(signUp.getEmployee());
-		return new ResponseEntity<>(HttpStatus.CREATED);
-	}
+  @PostMapping
+  private ResponseEntity<Void> store(@RequestBody CompanyRequest companyRequest) throws Exception {
+
+    /**
+     * Check company already exists
+     */
+    Optional<Company> sameCompany = companyRepository.findByCnpj(companyRequest.getCnpj());
+    if (sameCompany.isPresent()) {
+      throw new Exception("Company already exists");
+    }
+
+    /**
+     * Check user already exists
+     */
+    Optional<User> sameUser = userRepository.findByEmail(companyRequest.getEmail());
+    if (sameUser.isPresent()) {
+      throw new Exception("E-mail already used");
+    }
+
+    Company company = new Company(companyRequest.getCnpj(), companyRequest.getCompanyName());
+    company = companyRepository.save(company);
+
+    Role ownerRole = roleRepository.findByName("ROLE_OWNER").get();
+    User user = new User();
+    user.setFirstName(companyRequest.getFirstName());
+    user.setLastName(companyRequest.getLastName());
+    user.setEmail(companyRequest.getEmail());
+    user.setPassword(bCryptPasswordEncoder.encode(companyRequest.getPassword()));
+    user.setRoles(Arrays.asList(ownerRole));
+    user.setCompany(company);
+    userRepository.save(user);
+
+    return new ResponseEntity<>(HttpStatus.CREATED);
+  }
 
 }
