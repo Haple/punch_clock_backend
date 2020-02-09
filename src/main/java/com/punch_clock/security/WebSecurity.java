@@ -43,16 +43,18 @@ public class WebSecurity extends WebSecurityConfigurerAdapter {
 
   @Override
   protected void configure(HttpSecurity http) throws Exception {
-    http.cors().and().csrf().disable().authorizeRequests().requestMatchers(PROTECTED_URLS)
-        .authenticated().and().addFilter(new JWTAuthenticationFilter(authenticationManager()))
+    http.cors()
+        .and().csrf().disable()
+        .authorizeRequests().requestMatchers(PROTECTED_URLS).authenticated()
+        .and().addFilter(new JWTAuthenticationFilter(authenticationManager()))
         .addFilter(new JWTAuthorizationFilter(authenticationManager()))
-
         .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
   }
 
   @Override
   protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-    auth.userDetailsService(userDetailsService).passwordEncoder(bCryptPasswordEncoder);
+    auth.userDetailsService(userDetailsService)
+        .passwordEncoder(bCryptPasswordEncoder);
   }
 
   @Bean

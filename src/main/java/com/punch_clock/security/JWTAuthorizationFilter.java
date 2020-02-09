@@ -46,9 +46,9 @@ public class JWTAuthorizationFilter extends BasicAuthenticationFilter {
       DecodedJWT decodedJWT = JWT.require(Algorithm.HMAC512(SECRET.getBytes())).build()
           .verify(token.replace(TOKEN_PREFIX, ""));
 
-      List<GrantedAuthority> roles = AuthorityUtils
-          .createAuthorityList((String[]) decodedJWT.getClaim("roles").asArray(String.class));
       if (decodedJWT != null) {
+        List<GrantedAuthority> roles = AuthorityUtils.createAuthorityList(
+            (String[]) decodedJWT.getClaim("roles").asArray(String.class));
         return new UsernamePasswordAuthenticationToken(decodedJWT.getSubject(), null, roles);
       }
     }

@@ -32,8 +32,10 @@ public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilte
   public Authentication attemptAuthentication(HttpServletRequest request,
       HttpServletResponse response) throws AuthenticationException {
     try {
-      return authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
-          request.getAttribute("email"), request.getAttribute("password"), new ArrayList<>()));
+      String email = request.getParameter("email");
+      String password = request.getParameter("password");
+      return authenticationManager.authenticate(
+          new UsernamePasswordAuthenticationToken(email, password, new ArrayList<>()));
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -43,8 +45,13 @@ public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilte
   protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response,
       FilterChain chain, Authentication auth) throws IOException, ServletException {
     User user = (User) auth.getPrincipal();
-    System.out.println(user);
-    String token = JWT.create().withSubject(user.getUsername())
+    String[] roles = user.getAuthorities()
+        .stream()
+        .map((role) -> role.getAuthority())
+        .toArray(String[]::new);
+    String token = JWT.create()
+        .withSubject(user.getUsername())
+        .withArrayClaim("roles", roles)
         .withExpiresAt(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
         .sign(HMAC512(SECRET.getBytes()));
     response.addHeader(HEADER_STRING, TOKEN_PREFIX + token);
