@@ -4,9 +4,9 @@ import static com.auth0.jwt.algorithms.Algorithm.HMAC512;
 import static com.punch_clock.security.SecurityConstants.EXPIRATION_TIME;
 import static com.punch_clock.security.SecurityConstants.HEADER_STRING;
 import static com.punch_clock.security.SecurityConstants.SECRET;
+import static com.punch_clock.security.SecurityConstants.SIGN_IN_URL;
 import static com.punch_clock.security.SecurityConstants.TOKEN_PREFIX;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Date;
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
@@ -16,15 +16,17 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import com.auth0.jwt.JWT;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.punch_clock.user.User;;
 
-public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilter {
+public class JWTLoginFilter extends UsernamePasswordAuthenticationFilter {
 
   private AuthenticationManager authenticationManager;
 
-  public JWTAuthenticationFilter(AuthenticationManager authenticationManager) {
+  public JWTLoginFilter(AuthenticationManager authenticationManager) {
+    this.setFilterProcessesUrl(SIGN_IN_URL);
     this.authenticationManager = authenticationManager;
   }
 
@@ -32,10 +34,12 @@ public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilte
   public Authentication attemptAuthentication(HttpServletRequest request,
       HttpServletResponse response) throws AuthenticationException {
     try {
-      String email = request.getParameter("email");
-      String password = request.getParameter("password");
+      User credentials = new ObjectMapper()
+          .readValue(request.getInputStream(), User.class);
       return authenticationManager.authenticate(
-          new UsernamePasswordAuthenticationToken(email, password, new ArrayList<>()));
+          new UsernamePasswordAuthenticationToken(
+              credentials.getEmail(),
+              credentials.getPassword()));
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

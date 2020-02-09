@@ -14,11 +14,12 @@ import javax.persistence.OneToOne;
 import javax.persistence.Table;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.userdetails.UserDetails;
 import com.punch_clock.company.Company;
 
 @Entity
 @Table(name = "users")
-public class User {
+public class User implements UserDetails {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -40,6 +41,8 @@ public class User {
   @OneToOne
   @JoinColumn(foreignKey = @ForeignKey(name = "user_company_fk"))
   private Company company;
+
+  private static final long serialVersionUID = 1L;
 
   public User() {}
 
@@ -122,11 +125,34 @@ public class User {
         + tokenExpired + ", roles=" + roles + ", company=" + company + "]";
   }
 
-  public Collection<? extends GrantedAuthority> rolesToAuthorities() {
+  @Override
+  public Collection<? extends GrantedAuthority> getAuthorities() {
     String[] userRoles =
         this.getRoles().stream().map((role) -> role.getName()).toArray(String[]::new);
     Collection<GrantedAuthority> authorities = AuthorityUtils.createAuthorityList(userRoles);
     return authorities;
   }
+
+  @Override
+  public String getUsername() {
+    return this.email;
+  }
+
+  @Override
+  public boolean isAccountNonExpired() {
+    return true;
+  }
+
+  @Override
+  public boolean isAccountNonLocked() {
+    return true;
+  }
+
+  @Override
+  public boolean isCredentialsNonExpired() {
+    return true;
+  }
+
+
 
 }

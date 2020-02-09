@@ -1,5 +1,6 @@
 package com.punch_clock.security;
 
+import static com.punch_clock.security.SecurityConstants.SIGN_IN_URL;
 import static com.punch_clock.security.SecurityConstants.SIGN_UP_URL;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
@@ -21,7 +22,7 @@ import com.punch_clock.user.UserDetailsServiceImpl;
 public class WebSecurity extends WebSecurityConfigurerAdapter {
 
   private static final RequestMatcher PUBLIC_URLS = new OrRequestMatcher(
-      new AntPathRequestMatcher(SIGN_UP_URL), new AntPathRequestMatcher("/login"),
+      new AntPathRequestMatcher(SIGN_UP_URL), new AntPathRequestMatcher(SIGN_IN_URL),
       new AntPathRequestMatcher("/actuator/**"), new AntPathRequestMatcher("/docs"),
       new AntPathRequestMatcher("/v2/api-docs"), new AntPathRequestMatcher("/swagger-resources/**"),
       new AntPathRequestMatcher("/configuration/security"),
@@ -46,7 +47,7 @@ public class WebSecurity extends WebSecurityConfigurerAdapter {
     http.cors()
         .and().csrf().disable()
         .authorizeRequests().requestMatchers(PROTECTED_URLS).authenticated()
-        .and().addFilter(new JWTAuthenticationFilter(authenticationManager()))
+        .and().addFilter(new JWTLoginFilter(authenticationManager()))
         .addFilter(new JWTAuthorizationFilter(authenticationManager()))
         .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
   }
